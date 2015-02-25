@@ -14,8 +14,6 @@ Similar techniques can be used (and are used) for image processing
 python 3.4
 File spectra_10.dat should be in the same directry as this file   
 """
-#import os
-#os.chdir("/home/olga/github/DimensionalityReduction")
 
 import copy
 import numpy as np
@@ -39,6 +37,9 @@ def get_wavenumbers(spectra):
     lambda_max = float(spectra.columns[0][1:])  # maximal wavenumner in 0th column
     lambda_min = float(spectra.columns[-1][1:]) # minimal wavenumber in the last column
     wavenumbers = np.linspace(lambda_max, lambda_min, spectra.shape[1])
+    logger.debug("wavenumbers  %s ... %s", 
+                 " ".join([str(round(i,1)) for i in wavenumbers[:5]]),
+                 " ".join([str(round(i,1)) for i in wavenumbers[-5:]]) )
     return wavenumbers
 
 
@@ -87,6 +88,7 @@ def encode_signal(signal, denoising_coeff=5):
     coded_signal = pywt.wavedec(signal, wavelet='sym8', mode='cpd')
     noiseSigma = denoising_coeff*np.std(coded_signal[-1]);
     threshold=noiseSigma*np.sqrt(2*np.log2(len(signal))); #print(threshold)
+    logger.debug("denoising_coeff=%s, threshold=%s", str(denoising_coeff), str(threshold))
     # number of nonzero values is 10-20 times smaller than in the original signal
     coded_signal = list(map(lambda x: pywt.thresholding.soft(x,threshold),coded_signal))
     logger.info("... finished")
