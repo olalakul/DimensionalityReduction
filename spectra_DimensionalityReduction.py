@@ -14,6 +14,8 @@ Similar techniques can be used (and are used) for image processing
 python 3.4
 File spectra_10.dat should be in the same directry as this file   
 """
+#import os
+#os.chdir("/home/olga/github/DimensionalityReduction")
 
 import copy
 import numpy as np
@@ -55,10 +57,10 @@ def show_sample_spectra(spectra, samples=None, outF="sample_spectra.eps"):
         index_errors = set(samples).difference(set(spectra.index))
         if index_errors:
             samples = list(set(samples).intersection(set(spectra.index)))
-            print("Samples ", index_errors, "are not within 0 and", spectra.shape[0],
-                  "... ignoring them")
+            logger.warning("Samples %s are not within 0 and %s ... ignoring them",
+                           ' '.join([str(i) for i in index_errors]), str(spectra.shape[0]) )
         
-    print("Making plot for samples", samples, end="  ")          
+    logger.info("Making plot for samples %s", ' '.join([str(i) for i in index_errors]) )          
     wavenumbers = get_wavenumbers(spectra)
     plt.plot(wavenumbers, spectra.iloc[samples,:].transpose())
     plt.xlim([wavenumbers[0],wavenumbers[-1]])
@@ -66,7 +68,7 @@ def show_sample_spectra(spectra, samples=None, outF="sample_spectra.eps"):
     plt.ylabel('spectra of various samples')
     plt.text(7000, 2.3, str(spectra.shape[1])+" measurements for each sample", ha="left")
     plt.savefig(outF)
-    print("... saved to", outF, "  ... finished")
+    logger.info("... saved to %s ... finished", outF )
 
 
 def encode_signal(signal, denoising_coeff=5):
@@ -81,13 +83,13 @@ def encode_signal(signal, denoising_coeff=5):
     coded_signal (a list of numpy arrays) 
     """
     import pywt
-    print("Encoding signal ...", end = "\t")
+    logger.info("Encoding signal ...")
     coded_signal = pywt.wavedec(signal, wavelet='sym8', mode='cpd')
     noiseSigma = denoising_coeff*np.std(coded_signal[-1]);
     threshold=noiseSigma*np.sqrt(2*np.log2(len(signal))); #print(threshold)
     # number of nonzero values is 10-20 times smaller than in the original signal
     coded_signal = list(map(lambda x: pywt.thresholding.soft(x,threshold),coded_signal))
-    print("... finished")
+    logger.info("... finished")
     return coded_signal
 
 
@@ -100,10 +102,10 @@ def remove_background(coded_signal):
     * coded_signal_woBgr - ecoded signal (a list of numpy arrays) without background
     """
     import copy
-    print("Removing background ...", end = "\t")
+    logger.info("Removing background ...")
     coded_signal_woBgr = copy.deepcopy(coded_signal)
     coded_signal_woBgr[0] = np.zeros(len(coded_signal[0]))
-    print("... finished")
+    logger.info("... finished")
     return coded_signal_woBgr
 
     
@@ -117,9 +119,9 @@ def reconstruct_signal(coded_signal):
     """
     # reconstruct the signal
     import pywt
-    print("Reconstructing signal ...", end = "\t")
+    logger.info("Reconstructing signal ...")
     reconstructed = pywt.waverec(coded_signal, wavelet='sym8', mode='cpd')
-    print("... finished")
+    logger.info("... finished")
     return reconstructed
 
     
@@ -153,7 +155,7 @@ def visualize_encoding_reconstruction(signal, denoising_coeff=5, wavenumbers=Non
           max(abs(signal-reconstructed)/abs(signal))*100, "%" )
           
     # plot original and reconstructed signals
-    print("Making plot for original and reconstructed signal", end="   ")          
+    logger.info("Making plot for original and reconstructed signal")          
     if wavenumbers is None:
         wavenumbers = list(range(len(signal)))          
     df = pd.DataFrame({'original':signal, 
@@ -164,17 +166,22 @@ def visualize_encoding_reconstruction(signal, denoising_coeff=5, wavenumbers=Non
     plt.annotate(str(num_nontrivial_features-len(coded_signal_woBgr[0]))+" after removing background", xy=(0.4,0.87), xycoords='axes fraction')
     plt.xlabel('wavenumber')
     plt.savefig(outF)
-    print("... saved to", outF, "  ... finished")
+    logger.info("... saved to  %s  ... finished", outF)
 
 
     
 if __name__ == "__main__":
-
     import os
     import sys
     path = os.path.abspath(os.path.dirname(sys.argv[0]))
     print(path)
     os.chdir(path)
+
+    #logger
+    import logging
+    logging.basicConfig(level=logging.INFO)
+    logger = logging.getLogger(__name__)
+
     # open file with 10 spectra, each as a row of pandas data frame
     spectra = pd.read_csv("spectra_10.dat")    
     
